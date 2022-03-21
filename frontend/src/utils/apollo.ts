@@ -1,6 +1,29 @@
-import { ApolloClient, InMemoryCache, gql } from '@apollo/client'
+import { ApolloClient, InMemoryCache, gql, ApolloLink, HttpLink } from '@apollo/client'
 
-export const apolloClient = new ApolloClient({
+export function initializeApolloClientWithNewToken(token) {
+  const httpLink = new HttpLink({
+    uri: 'https://api-mumbai.lens.dev/',
+    fetch,
+  })
+
+  // example how you can pass in the x-access-token into requests using `ApolloLink`
+  const authLink = new ApolloLink((operation, forward) => {
+    operation.setContext({
+      headers: {
+        'x-access-token': token ? `Bearer ${token}` : '',
+      },
+    })
+    // Call the next link in the middleware chain.
+    return forward(operation)
+  })
+
+  apolloClient = new ApolloClient({
+    link: authLink.concat(httpLink),
+    cache: new InMemoryCache(),
+  })
+}
+
+export let apolloClient = new ApolloClient({
   uri: 'https://api-mumbai.lens.dev/',
   cache: new InMemoryCache(),
 })

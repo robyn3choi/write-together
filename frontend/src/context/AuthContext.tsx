@@ -3,10 +3,14 @@ import jwt from 'jsonwebtoken'
 import { useTimeout } from 'usehooks-ts'
 import { useAccount } from './AccountContext'
 import { generateChallenge, authenticate, refreshAuth } from 'utils/login'
+import { initializeApolloClientWithNewToken } from 'utils/apollo'
 
-declare let window: any
+const AuthContext = createContext<ProviderValue | undefined>(undefined)
 
-const AuthContext = createContext<any>(undefined)
+type ProviderValue = {
+  login: () => void
+  isLoggedIn: boolean
+}
 type Props = { children: ReactNode }
 
 export function AuthProvider({ children }: Props) {
@@ -30,6 +34,7 @@ export function AuthProvider({ children }: Props) {
     console.log('login: result', accessTokens.data)
     setRefreshTimeout(accessTokens.data.authenticate.accessToken)
 
+    initializeApolloClientWithNewToken(accessTokens.data.authenticate.accessToken)
     setAccessToken(accessTokens.data.authenticate.accessToken)
     setRefreshToken(accessTokens.data.authenticate.refreshToken)
     return accessTokens.data
@@ -45,11 +50,12 @@ export function AuthProvider({ children }: Props) {
     console.log('refreshing')
     const newTokens = await refreshAuth(refreshToken)
     setRefreshTimeout(newTokens.data.refresh.accessToken)
+    initializeApolloClientWithNewToken(newTokens.data.authenticate.accessToken)
     setAccessToken(newTokens.data.refresh.accessToken)
     setRefreshToken(newTokens.data.refresh.refreshToken)
   }
 
-  return <AuthContext.Provider value={{ login }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ login, isLoggedIn: !!accessToken }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {
