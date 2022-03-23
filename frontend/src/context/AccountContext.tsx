@@ -1,6 +1,6 @@
-import { ApolloClient, InMemoryCache, gql } from '@apollo/client'
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { ethers } from 'ethers'
+import { setSigner } from 'utils/lensHub'
 
 declare let window: any
 
@@ -21,6 +21,7 @@ export function AccountProvider({ children }: Props) {
     if (typeof window.ethereum !== 'undefined' && !provider) {
       const provider = new ethers.providers.Web3Provider(window.ethereum)
       setProvider(provider)
+      setSigner(provider.getSigner())
     }
   })
 

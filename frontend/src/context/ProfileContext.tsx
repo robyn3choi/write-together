@@ -3,14 +3,14 @@ import { useAuth } from './AuthContext'
 import { getProfiles, createProfile } from 'utils/profile'
 import { pollUntilIndexed } from 'utils/pollUntilIndexed'
 import { useAccount } from './AccountContext'
-import Profile from 'types/Profile'
+import { getPublicationsByProfileId } from 'utils/getPublications'
 
 const ProfileContext = createContext<ProviderValue | undefined>(undefined)
 type Props = { children: ReactNode }
 
 type ProviderValue = {
-  profiles: Profile[]
-  activeProfile: Profile
+  profiles: any[]
+  activeProfile: any
   createProfile: (handle: string, imageUrl: string) => void
 }
 
@@ -22,14 +22,9 @@ export function ProfileProvider({ children }: Props) {
 
   async function getOwnedProfiles() {
     const res = await getProfiles({ ownedBy: address! })
-    setProfiles(
-      res.data.profiles.items.map((item) => ({
-        id: item.id,
-        handle: item.handle,
-        imageUrl: item.picture.original?.url || item.picture.uri || null,
-      }))
-    )
+    setProfiles(res.data.profiles.items)
     setActiveProfileId(res.data.profiles.items[0].id)
+    const blah = await getPublicationsByProfileId(res.data.profiles.items[0].id)
   }
 
   useEffect(() => {

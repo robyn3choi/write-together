@@ -15,11 +15,16 @@
     "@mantine/next": "^4.0.7",
     "@mantine/rte": "^4.0.7",
     "graphql": "^16.3.0",
+    "ipfs-http-client": "^56.0.1",
     "jsonwebtoken": "^8.5.1",
     "next": "12.1.0",
+    "omit-deep": "^0.3.0",
     "react": "17.0.2",
     "react-dom": "17.0.2",
-    "usehooks-ts": "^2.4.2"
+    "react-responsive-carousel": "^3.2.23",
+    "sanitize-html": "^2.7.0",
+    "usehooks-ts": "^2.4.2",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@types/node": "17.0.21",

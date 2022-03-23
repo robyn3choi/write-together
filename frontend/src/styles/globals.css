@@ -16,3 +16,7 @@ a {
 * {
   box-sizing: border-box;
 }
+
+.carousel-root .carousel .slide {
+  text-align: left;
+}

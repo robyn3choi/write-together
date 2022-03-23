@@ -1,14 +1,13 @@
 import { Avatar, Group, Text } from '@mantine/core'
-import Profile from 'types/Profile'
 
 type Props = {
-  profile: Profile
+  profile: any
 }
 
 export default function ProfileImageAndHandle({ profile }: Props) {
   return (
     <Group spacing="sm">
-      <Avatar radius="xl" src={profile.imageUrl} alt={profile.handle} />
+      <Avatar radius="xl" src={profile.picture.original?.url || profile.picture.uri || null} alt={profile.handle} />
       <Text>{profile.handle}</Text>
     </Group>
   )

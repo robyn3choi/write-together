@@ -16,6 +16,7 @@ const fonts = [
   'Lucida Console',
   'Luminari',
   'Monaco',
+  'Papyrus',
   'Tahoma',
   'Times New Roman',
   'Trebuchet MS',

@@ -50,7 +50,7 @@ export function AuthProvider({ children }: Props) {
     console.log('refreshing')
     const newTokens = await refreshAuth(refreshToken)
     setRefreshTimeout(newTokens.data.refresh.accessToken)
-    initializeApolloClientWithNewToken(newTokens.data.authenticate.accessToken)
+    initializeApolloClientWithNewToken(newTokens.data.refresh.accessToken)
     setAccessToken(newTokens.data.refresh.accessToken)
     setRefreshToken(newTokens.data.refresh.refreshToken)
   }
