@@ -1,14 +1,15 @@
-import { useEffect, useState, useRef } from 'react'
-import { Button, Loader, Title, Paper } from '@mantine/core'
+import { useEffect, useState } from 'react'
+import { ethers } from 'ethers'
+import { Loader, Box } from '@mantine/core'
 import { useRouter } from 'next/router'
 import { Carousel } from 'react-responsive-carousel'
 import { useProfile } from 'context/ProfileContext'
-import { getPublication } from 'utils/getPublication'
-import ProfileImageAndHandle from 'components/ProfileImageAndHandle'
-import ContinueStoryModal from 'components/ContinueStoryModal'
-import { sanitize, getTraitFromMetadata } from 'utils/helpers'
+import { getTraitFromMetadata } from 'utils/helpers'
 import { getCommentsOnPost } from 'utils/getPublications'
-import 'react-responsive-carousel/lib/styles/carousel.min.css' // requires a loader
+import Page from 'types/Page'
+import 'react-responsive-carousel/lib/styles/carousel.min.css'
+import PageView from './PageView'
+import { useAccount } from 'context/AccountContext'
 
 type Props = {
   onContinueFromComment: (comment: any) => void
@@ -18,18 +19,19 @@ export default function Comments({ onContinueFromComment }: Props) {
   const router = useRouter()
   const { postId } = router.query
   const { activeProfile } = useProfile()
-  const [allCommentsByPage, setAllCommentsByPage] = useState<any[][]>() // an array that holds arrays of comments grouped by page
+  const { contract } = useAccount()
+
+  const [allCommentsByPage, setAllCommentsByPage] = useState<any[][]>() // an array that holds arrays of comments grouped by page number
   const [viewableCommentsByPage, setViewableCommentsByPage] = useState<any[][]>() // same as above but only viewable comments
-  //const [pageToCurrentCommentId, setPageToCurrentCommentId] = useState<any>() // TODO: do we need this?
   const [isLoadingComments, setIsLoadingComments] = useState(false)
+  const [commentsToLikes, setCommentsToLikes] = useState<any>() //
 
   useEffect(() => {
     async function getComments() {
       setIsLoadingComments(true)
-
       const commentsRes = await getCommentsOnPost(postId)
 
-      const allCommentsAscending = commentsRes.publications.items
+      const allCommentsAscending: Page[] = commentsRes.publications.items
         .filter((c) => c.appId === process.env.NEXT_PUBLIC_APP_ID)
         .map((c) => ({
           createdAt: c.createdAt,
@@ -44,7 +46,6 @@ export default function Comments({ onContinueFromComment }: Props) {
         }))
       // sort in ascending order of page number
       allCommentsAscending.sort((a, b) => a.page - b.page)
-      console.log(allCommentsAscending)
       const _allCommentsByPage: any[][] = []
 
       allCommentsAscending.forEach((c) => {
@@ -57,20 +58,26 @@ export default function Comments({ onContinueFromComment }: Props) {
       })
 
       const _viewableCommentsByPage: any[][] = [..._allCommentsByPage]
-      const _pageToCurrentCommentId: any = { 2: _viewableCommentsByPage[0][0].id }
-      // we don't need to filter page 2 comments (which are in the first element of _viewableCommentsByPage)
-      for (let i = 1; i < _viewableCommentsByPage.length; i++) {
-        // filter based on the first comment in the previous page
-        _viewableCommentsByPage[i] = _viewableCommentsByPage[i].filter(
-          (c) => c.continuedFrom === _viewableCommentsByPage[i - 1][0].id
-        )
-        //_pageToCurrentCommentId[i + 2] = _viewableCommentsByPage[i][0].id
-      }
-      // TODO: sort by likes ^
       console.log(_viewableCommentsByPage)
+      const _commentsToLikes = {}
+      // we don't need to filter page 2 comments (which are in the first element of _viewableCommentsByPage)
+      for (let i = 0; i < _viewableCommentsByPage.length; i++) {
+        if (i > 0) {
+          // only viewing comments continued from the first comment in the previous page
+          _viewableCommentsByPage[i] = _viewableCommentsByPage[i].filter(
+            (c) => c.continuedFrom === _viewableCommentsByPage[i - 1][0].id
+          )
+        }
+        // for each viewable comment on this page, get its likes
+        for (let comment of _viewableCommentsByPage[i]) {
+          const likes = await contract!.getPageLikes(comment.id)
+          _commentsToLikes[comment.id] = likes.toNumber()
+        }
+        _viewableCommentsByPage[i].sort((a, b) => _commentsToLikes[b.id] - _commentsToLikes[a.id])
+      }
       setAllCommentsByPage(_allCommentsByPage)
       setViewableCommentsByPage(_viewableCommentsByPage)
-      //setPageToCurrentCommentId(_pageToCurrentCommentId)
+      setCommentsToLikes(_commentsToLikes)
       setIsLoadingComments(false)
     }
     if (!allCommentsByPage && !isLoadingComments && postId) {
@@ -78,20 +85,26 @@ export default function Comments({ onContinueFromComment }: Props) {
     }
   })
 
-  function handleCarouselChange(commentIndex: number, commentsByPageIndex: number) {
+  async function handleCarouselChange(commentIndex: number, commentsByPageIndex: number) {
     if (!viewableCommentsByPage || !allCommentsByPage) return // to appease typescript
 
     const newlyViewingCommentId = viewableCommentsByPage[commentsByPageIndex][commentIndex].id
     const newViewableCommentsByPage = [...viewableCommentsByPage] // TODO: figure out if we need a deep copy
-    //const newPageToCurrentCommentId = { ...pageToCurrentCommentId }
+    const newCommentsToLikes = { ...commentsToLikes }
     // start looping on the next page because only the viewable comments on the next pages change
     for (let i = commentsByPageIndex + 1; i < viewableCommentsByPage.length; i++) {
       newViewableCommentsByPage[i] = allCommentsByPage[i].filter((c) => c.continuedFrom === newlyViewingCommentId)
-      console.log(viewableCommentsByPage)
-      //newPageToCurrentCommentId[i + 2] = viewableCommentsByPage[i][0].id // TODO: sort by likes before this
+      // for each viewable comment on this page, get its likes
+      for (let comment of newViewableCommentsByPage[i]) {
+        if (newCommentsToLikes[comment.id] === undefined) {
+          const likes = await contract!.getPageLikes(comment.id)
+          newCommentsToLikes[comment.id] = likes.toNumber()
+        }
+      }
+      newViewableCommentsByPage[i].sort((a, b) => newCommentsToLikes[b.id] - newCommentsToLikes[a.id])
     }
+    setCommentsToLikes(newCommentsToLikes)
     setViewableCommentsByPage(newViewableCommentsByPage)
-    //setPageToCurrentCommentId(newPageToCurrentCommentId)
   }
 
   function getCarouselKey(page: any[]) {
@@ -104,10 +117,10 @@ export default function Comments({ onContinueFromComment }: Props) {
 
   return (
     <>
-      {!viewableCommentsByPage ? (
+      {!viewableCommentsByPage || !commentsToLikes ? (
         <Loader />
       ) : (
-        <div>
+        <Box>
           {viewableCommentsByPage.map((page, i) => (
             <Carousel
               key={getCarouselKey(page)}
@@ -116,21 +129,17 @@ export default function Comments({ onContinueFromComment }: Props) {
               onChange={(commentIndex) => handleCarouselChange(commentIndex, i)}
             >
               {viewableCommentsByPage[i].map((comment) => (
-                <Paper key={comment.id}>
-                  <div
-                    dangerouslySetInnerHTML={{
-                      __html: sanitize(comment.content),
-                    }}
-                    style={{ fontFamily: comment.font }}
-                  />
-                  <Button onClick={() => onContinueFromComment(comment)} disabled={!activeProfile}>
-                    {activeProfile ? 'Continue Story from Here' : 'Log In to Continue Story'}
-                  </Button>
-                </Paper>
+                <PageView
+                  key={comment.id}
+                  page={comment}
+                  likes={commentsToLikes[comment.id]}
+                  onUpdateLikes={(likes) => setCommentsToLikes((prevState) => ({ ...prevState, [comment.id]: likes }))}
+                  onContinue={() => onContinueFromComment(comment)}
+                />
               ))}
             </Carousel>
           ))}
-        </div>
+        </Box>
       )}
     </>
   )

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { ethers } from 'ethers'
 import { setSigner } from 'utils/lensHub'
+import { storyInteractionsContractAddress, storyInteractionsAbi } from 'utils/helpers'
 
 declare let window: any
 
@@ -11,19 +12,22 @@ type ProviderValue = {
   address: string | null
   connectWallet: () => void
   provider: ethers.providers.Web3Provider | null
+  contract: ethers.Contract | null
 }
 
 export function AccountProvider({ children }: Props) {
   const [address, setAddress] = useState<string | null>(null)
   const [provider, setProvider] = useState<ethers.providers.Web3Provider | null>(null)
+  const [contract, setContract] = useState<ethers.Contract | null>(null)
 
   useEffect(() => {
     if (typeof window.ethereum !== 'undefined' && !provider) {
       const provider = new ethers.providers.Web3Provider(window.ethereum)
       setProvider(provider)
       setSigner(provider.getSigner())
+      setContract(new ethers.Contract(storyInteractionsContractAddress, storyInteractionsAbi, provider!.getSigner()))
     }
-  })
+  }, [provider])
 
   useEffect(() => {
     if (window.ethereum) {
@@ -71,7 +75,9 @@ export function AccountProvider({ children }: Props) {
     }
   }
 
-  return <AccountContext.Provider value={{ address, connectWallet, provider }}>{children}</AccountContext.Provider>
+  return (
+    <AccountContext.Provider value={{ address, connectWallet, provider, contract }}>{children}</AccountContext.Provider>
+  )
 }
 
 export function useAccount() {

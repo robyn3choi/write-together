@@ -99,6 +99,7 @@ const GET_PUBLICATIONS = `
     name
     description
     content
+    image
     media {
       original {
         ...MediaFields

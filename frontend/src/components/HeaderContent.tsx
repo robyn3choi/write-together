@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Button } from '@mantine/core'
+import { ActionIcon, Button, Group } from '@mantine/core'
+import { SunIcon, MoonIcon } from '@heroicons/react/solid'
 import { explorePublications } from 'utils/apollo'
 import { useAccount } from 'context/AccountContext'
 import { useAuth } from 'context/AuthContext'
@@ -8,7 +9,12 @@ import CreateProfileModal from './CreateProfileModal'
 import { useProfile } from 'context/ProfileContext'
 import ProfileImageAndHandle from './ProfileImageAndHandle'
 
-export default function HeaderContent() {
+type Props = {
+  colorScheme: string
+  toggleColorScheme: () => void
+}
+
+export default function HeaderContent({ colorScheme, toggleColorScheme }: Props) {
   const { address, connectWallet } = useAccount()
   const { login, isLoggedIn } = useAuth()
   const { activeProfile } = useProfile()
@@ -17,12 +23,13 @@ export default function HeaderContent() {
 
   return (
     <>
-      <div>
+      <Group>
         {address || <Button onClick={connectWallet}>connect wallet</Button>}
         {!isLoggedIn && <Button onClick={login}>login</Button>}
         {isLoggedIn && <Button onClick={() => setShowCreateProfileModal(true)}>create profile</Button>}
         {activeProfile && <ProfileImageAndHandle profile={activeProfile} />}
-      </div>
+        <ActionIcon onClick={toggleColorScheme}>{colorScheme === 'dark' ? <MoonIcon /> : <SunIcon />}</ActionIcon>
+      </Group>
       {showCreateProfileModal && <CreateProfileModal onClose={() => setShowCreateProfileModal(false)} />}
     </>
   )

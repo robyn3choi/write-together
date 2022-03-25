@@ -79,7 +79,7 @@ export default function ContinueStoryModal({ firstPage, previousPage, font, onCl
         <Button onClick={handleSubmit}>Submit</Button>
       </Modal>
       <Modal centered opened={showCloseConfirmation} onClose={() => setShowCloseConfirmation(false)} title="Close?">
-        <Text>Are you sure you want to leave? Your changes won't be saved.</Text>
+        <Text>Are you sure you want to leave? Your changes won`&apos;`t be saved.</Text>
         <Button onClick={handleClose} loading={isSubmitting}>
           Yes
         </Button>

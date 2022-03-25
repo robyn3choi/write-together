@@ -12,24 +12,21 @@ async function main() {
 
   // ethers is available in the global scope
   const [deployer] = await ethers.getSigners();
-  console.log(
-    "Deploying the contracts with the account:",
-    await deployer.getAddress()
-  );
+  console.log("Deploying the contracts with the account:", await deployer.getAddress());
 
   console.log("Account balance:", (await deployer.getBalance()).toString());
 
-  const Token = await ethers.getContractFactory("Token");
-  const token = await Token.deploy();
-  await token.deployed();
+  const StoryInteractions = await ethers.getContractFactory("StoryInteractions");
+  const storyInteractions = await StoryInteractions.deploy();
+  await storyInteractions.deployed();
 
-  console.log("Token address:", token.address);
+  console.log("StoryInteractions address:", storyInteractions.address);
 
   // We also save the contract's artifacts and address in the frontend directory
-  saveFrontendFiles(token);
+  saveFrontendFiles(storyInteractions);
 }
 
-function saveFrontendFiles(token) {
+function saveFrontendFiles(storyInteractions) {
   const fs = require("fs");
   const contractsDir = __dirname + "/../frontend/src/contracts";
 
@@ -39,15 +36,12 @@ function saveFrontendFiles(token) {
 
   fs.writeFileSync(
     contractsDir + "/contract-address.json",
-    JSON.stringify({ Token: token.address }, undefined, 2)
+    JSON.stringify({ StoryInteractions: storyInteractions.address }, undefined, 2)
   );
 
-  const TokenArtifact = artifacts.readArtifactSync("Token");
+  const StoryInteractionsArtifact = artifacts.readArtifactSync("StoryInteractions");
 
-  fs.writeFileSync(
-    contractsDir + "/Token.json",
-    JSON.stringify(TokenArtifact, null, 2)
-  );
+  fs.writeFileSync(contractsDir + "/StoryInteractions.json", JSON.stringify(StoryInteractionsArtifact, null, 2));
 }
 
 main()

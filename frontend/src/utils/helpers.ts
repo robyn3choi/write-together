@@ -1,6 +1,10 @@
 import sanitizeHtml from 'sanitize-html'
 import { TypedDataDomain, TypedDataField } from '@ethersproject/abstract-signer'
 import omitDeep from 'omit-deep'
+import abi from 'contracts/StoryInteractions.json'
+
+export const storyInteractionsContractAddress = '0x70c99ddC55FC2c33a9cC51816193B260BA04b505'
+export const storyInteractionsAbi = abi.abi
 
 export const sanitize = (html) => sanitizeHtml(html, { allowedAttributes: false, allowedTags: false })
 
