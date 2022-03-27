@@ -1,4 +1,4 @@
-import { Button, Checkbox, Modal, Text } from '@mantine/core'
+import { Button, Checkbox, Modal, Paper, Space, Text, Title, Group } from '@mantine/core'
 import { useEffect, useState, useRef } from 'react'
 import { useProfile } from 'context/ProfileContext'
 import { sanitize, getImageFromRichText } from 'utils/helpers'
@@ -7,15 +7,25 @@ import { createComment } from 'utils/comment'
 import ProfileImageAndHandle from './ProfileImageAndHandle'
 import TextEditor from './TextEditor'
 import { useAccount } from 'context/AccountContext'
+import { pollUntilIndexed } from 'utils/pollUntilIndexed'
 
 type Props = {
   firstPage: any
   previousPage: any
   font: string
+  allPublicationsInStory: any
   onClose: () => void
+  onFinishSubmit: () => void
 }
 
-export default function ContinueStoryModal({ firstPage, previousPage, font, onClose }: Props) {
+export default function ContinueStoryModal({
+  firstPage,
+  previousPage,
+  font,
+  onClose,
+  onFinishSubmit,
+  allPublicationsInStory,
+}: Props) {
   const { activeProfile } = useProfile()
   const { provider } = useAccount()
   const [body, setBody] = useState('')
@@ -32,8 +42,9 @@ export default function ContinueStoryModal({ firstPage, previousPage, font, onCl
     setIsSubmitting(true)
 
     const storyName = firstPage.name
-    const commentName = `${activeProfile.handle}'s page ${previousPage.page + 1} of ${storyName}`
-    const description = `The continuation of a story started by ${activeProfile.handle}.`
+    const commentName = isEnding
+      ? `${storyName} - with ending by ${activeProfile.handle}`
+      : `${activeProfile.handle}'s page ${previousPage.page + 1} of ${storyName}`
     // the ql classnames only work inside the text editor
     const content = body
       .replace('class="ql-align-right"', 'style="text-align: right;"')
@@ -44,11 +55,24 @@ export default function ContinueStoryModal({ firstPage, previousPage, font, onCl
       { traitType: 'Font', value: font },
       { traitType: 'Continued from', value: previousPage.id },
     ]
-    const image = getImageFromRichText(body, font)
+
+    const contentLeadingUpToHereArray: string[] = [content]
+    let continuedFrom = previousPage
+    while (continuedFrom) {
+      contentLeadingUpToHereArray.push(continuedFrom.content)
+      const previousId = continuedFrom.continuedFrom
+      continuedFrom = previousId ? allPublicationsInStory.find((p) => p.id === previousId) : null
+    }
+    const description = contentLeadingUpToHereArray.reverse().join('')
+    const image = getImageFromRichText(description, font)
     const ipfsRes = await uploadIpfs({ name: commentName, description, content, image, attributes })
-    const commentRes = await createComment(activeProfile.id, firstPage.id, ipfsRes, provider!.getSigner())
+    const commentTx = await createComment(activeProfile.id, firstPage.id, ipfsRes, provider!.getSigner(), isEnding)
+
+    await pollUntilIndexed(commentTx.hash)
 
     setIsSubmitting(false)
+    handleClose()
+    onFinishSubmit()
   }
 
   return (
@@ -59,32 +83,40 @@ export default function ContinueStoryModal({ firstPage, previousPage, font, onCl
         size={1024}
         closeOnClickOutside={false}
         onClose={() => setShowCloseConfirmation(true)}
-        title="Write the next part of the story"
+        title={<Title order={2}>Write the Next Page</Title>}
       >
-        <ProfileImageAndHandle profile={previousPage.profile} />
-        <div
-          dangerouslySetInnerHTML={{
-            __html: sanitize(previousPage.content),
-          }}
-          style={{ fontFamily: font }}
-        />
-        <ProfileImageAndHandle profile={activeProfile} />
+        <Space h="sm" />
+        <Paper withBorder className="p-4 mb-4 border-gray-300">
+          <div
+            dangerouslySetInnerHTML={{
+              __html: sanitize(previousPage.content),
+            }}
+            style={{ fontFamily: font }}
+          />
+        </Paper>
         <TextEditor value={body} onChange={setBody} font={font} />
-        <Checkbox
-          size="xl"
-          label="This is an ending"
-          checked={isEnding}
-          onChange={(event) => setIsEnding(event.currentTarget.checked)}
-        />
-        <Button onClick={handleSubmit}>Submit</Button>
+        <Group mt="lg" position="center">
+          <Checkbox
+            size="lg"
+            label="This is an ending"
+            checked={isEnding}
+            onChange={(event) => setIsEnding(event.currentTarget.checked)}
+          />
+          <Button onClick={handleSubmit} loading={isSubmitting}>
+            Submit
+          </Button>
+        </Group>
       </Modal>
-      <Modal centered opened={showCloseConfirmation} onClose={() => setShowCloseConfirmation(false)} title="Close?">
-        <Text>Are you sure you want to leave? Your changes won`&apos;`t be saved.</Text>
-        <Button onClick={handleClose} loading={isSubmitting}>
-          Yes
-        </Button>
-        <Button ml="xs" onClick={() => setShowCloseConfirmation(false)}>
-          No
+      <Modal
+        centered
+        withCloseButton={false}
+        opened={showCloseConfirmation}
+        onClose={() => setShowCloseConfirmation(false)}
+      >
+        <Text mb="lg">Are you sure you want to leave? Your changes won&apos;t be saved.</Text>
+        <Button onClick={() => setShowCloseConfirmation(false)}>Stay</Button>
+        <Button ml="xs" variant="outline" onClick={handleClose} disabled={!body}>
+          Leave
         </Button>
       </Modal>
     </>

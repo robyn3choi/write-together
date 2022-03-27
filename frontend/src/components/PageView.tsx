@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ethers } from 'ethers'
-import { Button, Text, Group, Paper, ActionIcon, Modal, Loader, SimpleGrid } from '@mantine/core'
+import { Divider, Button, Text, Group, Paper, ActionIcon, Modal, SimpleGrid, Loader, Title } from '@mantine/core'
 import { HeartIcon as HeartSolid } from '@heroicons/react/solid'
 import { HeartIcon as HeartOutline } from '@heroicons/react/outline'
 import Page from 'types/Page'
@@ -8,6 +8,8 @@ import ProfileImageAndHandle from 'components/ProfileImageAndHandle'
 import { sanitize } from 'utils/helpers'
 import { useProfile } from 'context/ProfileContext'
 import { useAccount } from 'context/AccountContext'
+import { collect } from 'utils/collect'
+import { pollUntilIndexed } from 'utils/pollUntilIndexed'
 
 type Props = {
   page: Page
@@ -35,6 +37,8 @@ export default function PageView({
   const [showCantLikeModal, setShowCantLikeModal] = useState<boolean>(false)
   const [isLoadingLikes, setIsLoadingLikes] = useState<boolean>(false)
   const [isCheckingIfActiveProfileLikesPage, setIsCheckingIfActiveProfileLikesPage] = useState<boolean>(false)
+  const [isCollecting, setIsCollecting] = useState(false)
+  const [hasCollected, setHasCollected] = useState(false)
 
   useEffect(() => {
     async function checkIfActiveProfileLikesPage() {
@@ -100,14 +104,44 @@ export default function PageView({
     )
   }
 
+  function getBackgroundColor(theme) {
+    if (page.partOfStory === 'Beginning') {
+      return theme.colors.blue[0]
+    }
+    if (page.partOfStory === 'End') {
+      return theme.colors.green[0]
+    }
+    return theme.colors.white
+  }
+
+  async function onCollect() {
+    setIsCollecting(true)
+    const tx = await collect(page.id, provider!.getSigner())
+    await pollUntilIndexed(tx.hash)
+    setIsCollecting(false)
+    setHasCollected(true)
+  }
+
   return (
     <>
-      <Paper key={page.id} shadow="xs" p="md" mb="sm">
+      <Paper
+        key={page.id}
+        shadow="lg"
+        withBorder
+        p="md"
+        mb="sm"
+        sx={(theme) => ({
+          backgroundColor: getBackgroundColor(theme),
+        })}
+      >
         <SimpleGrid cols={page.partOfStory === 'Beginning' ? 3 : 2}>
           <ProfileImageAndHandle profile={page.profile} />
           {page.partOfStory === 'Beginning' && getFollowUi()}
-          <Text align="right">{new Date(page.createdAt).toLocaleString()}</Text>
+          <Text mt="6px" ml="auto" size="sm" color="dimmed">
+            {new Date(page.createdAt).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })}
+          </Text>
         </SimpleGrid>
+        <Divider mt="sm" />
         <div
           dangerouslySetInnerHTML={{
             __html: sanitize(page.content),
@@ -115,22 +149,50 @@ export default function PageView({
           style={{ fontFamily: page.font, padding: '28px 18px' }}
         />
         <Group grow>
-          {isLoadingLikes ? (
-            <Loader size="sm" />
-          ) : (
-            <Group spacing="xs">
-              <ActionIcon color="red" onClick={toggleLike} disabled={isCheckingIfActiveProfileLikesPage}>
-                {doesActiveProfileLikePage ? <HeartSolid /> : <HeartOutline />}
-              </ActionIcon>
-              <Text>{likes}</Text>
-            </Group>
-          )}
-          <Button onClick={onContinue} disabled={!activeProfile}>
-            {activeProfile ? 'Continue Story from Here' : 'Log In to Continue Story'}
-          </Button>
+          <Group spacing="xs">
+            {isLoadingLikes ? (
+              <Loader size="sm" />
+            ) : (
+              <>
+                <ActionIcon color="red" onClick={toggleLike} disabled={isCheckingIfActiveProfileLikesPage}>
+                  {doesActiveProfileLikePage ? <HeartSolid /> : <HeartOutline />}
+                </ActionIcon>
+                <Text>{likes}</Text>
+              </>
+            )}
+          </Group>
+          <div>
+            {page.partOfStory === 'End' ? (
+              <Button
+                size="xs"
+                color="green"
+                onClick={onCollect}
+                disabled={!activeProfile || hasCollected}
+                loading={isCollecting}
+                className="m-auto block"
+              >
+                {hasCollected ? 'Collected' : activeProfile ? 'Collect' : 'Log In to Collect'}
+              </Button>
+            ) : (
+              <Button
+                size="xs"
+                variant="outline"
+                onClick={onContinue}
+                disabled={!activeProfile}
+                className="m-auto block"
+              >
+                {activeProfile ? 'Continue' : 'Log In to Continue Story'}
+              </Button>
+            )}
+          </div>
           <Text align="right">{page.page}</Text>
         </Group>
       </Paper>
+      {page.partOfStory === 'End' && (
+        <Title order={3} className="text-center">
+          The End
+        </Title>
+      )}
       {showCantLikeModal && (
         <Modal centered opened title="Log in to like story pages" onClose={() => setShowCantLikeModal(false)}>
           <Button onClick={() => setShowCantLikeModal(false)}>Ok</Button>

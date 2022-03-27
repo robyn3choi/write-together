@@ -4,15 +4,15 @@ import { apolloClient } from './apollo'
 const GET_PUBLICATION = `
   query($request: PublicationQueryRequest!) {
     publication(request: $request) {
-        __typename 
-        ... on Post {
-          ...PostFields
-        }
-        ... on Comment {
-          ...CommentFields
-        }
-        ... on Mirror {
-          ...MirrorFields
+      __typename 
+      ... on Post {
+        ...PostFields
+      }
+      ... on Comment {
+        ...CommentFields
+      }
+      ... on Mirror {
+        ...MirrorFields
       }
     }
   }

@@ -6,6 +6,7 @@ const GET_PROFILES = `
     profiles(request: $request) {
       items {
         id
+        ownedBy
         picture {
           ... on NftImage {
             contractAddress
@@ -20,6 +21,15 @@ const GET_PROFILES = `
             }
           }
           __typename
+        }
+        stats {
+          totalFollowers
+          totalFollowing
+          totalPosts
+          totalComments
+          totalMirrors
+          totalPublications
+          totalCollects
         }
         handle
       }

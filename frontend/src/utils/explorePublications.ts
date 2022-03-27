@@ -1,9 +1,9 @@
 import { gql } from '@apollo/client/core'
 import { apolloClient } from './apollo'
 
-const GET_PUBLICATIONS = `
-  query($request: PublicationsQueryRequest!) {
-    publications(request: $request) {
+const EXPLORE_PUBLICATIONS = `
+  query($request: ExplorePublicationRequest!) {
+    explorePublications(request: $request) {
       items {
         __typename 
         ... on Post {
@@ -22,6 +22,8 @@ const GET_PUBLICATIONS = `
   }
   fragment MediaFields on Media {
     url
+    width
+    height
     mimeType
   }
   fragment ProfileFields on Profile {
@@ -43,6 +45,12 @@ const GET_PUBLICATIONS = `
         original {
           ...MediaFields
         }
+        small {
+          ...MediaFields
+        }
+        medium {
+          ...MediaFields
+        }
       }
     }
     coverPicture {
@@ -54,6 +62,12 @@ const GET_PUBLICATIONS = `
       }
       ... on MediaSet {
         original {
+          ...MediaFields
+        }
+        small {
+         ...MediaFields
+        }
+        medium {
           ...MediaFields
         }
       }
@@ -96,9 +110,14 @@ const GET_PUBLICATIONS = `
     name
     description
     content
-    image
     media {
       original {
+        ...MediaFields
+      }
+      small {
+        ...MediaFields
+      }
+      medium {
         ...MediaFields
       }
     }
@@ -225,31 +244,22 @@ const GET_PUBLICATIONS = `
   }
 `
 
-// TODO types
-const getPublicationsRequest = (getPublicationQuery: any) => {
+const explorePublications = (explorePublicationQueryRequest) => {
   return apolloClient.query({
-    query: gql(GET_PUBLICATIONS),
+    query: gql(EXPLORE_PUBLICATIONS),
     variables: {
-      request: getPublicationQuery,
+      request: explorePublicationQueryRequest,
     },
   })
 }
 
-export const getPublicationsByProfileId = async (profileId) => {
-  const result = await getPublicationsRequest({
-    profileId,
-    publicationTypes: ['POST', 'COMMENT'],
-    //sources: [process.env.NEXT_PUBLIC_APP_ID],
+export const explore = async () => {
+  const result = await explorePublications({
+    sortCriteria: 'TOP_COMMENTED',
+    sources: [process.env.NEXT_PUBLIC_APP_ID],
   })
-  console.log('publications: result', result.data)
-  return result.data
-}
 
-export const getCommentsOnPost = async (postId) => {
-  const result = await getPublicationsRequest({
-    commentsOf: postId,
-    //sources: [process.env.NEXT_PUBLIC_APP_ID],
-  })
-  console.log('publications: result', result.data)
+  console.log('explore: result', result.data)
+
   return result.data
 }

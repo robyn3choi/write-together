@@ -86,4 +86,5 @@ export const createPost = async (profileId: string, ipfsResult: any, signer: eth
     },
   })
   console.log('create post: tx hash', tx.hash)
+  return tx
 }

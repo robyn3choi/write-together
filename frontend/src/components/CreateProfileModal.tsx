@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Modal, Button, Group, TextInput, Avatar, Text } from '@mantine/core'
+import { Modal, Button, Group, TextInput, Avatar, Text, MantineNumberSize } from '@mantine/core'
 import { useProfile } from 'context/ProfileContext'
 
 export default function CreateProfileModal({ onClose }) {
@@ -29,8 +29,8 @@ export default function CreateProfileModal({ onClose }) {
   return (
     <Modal centered opened onClose={onClose} title="Create profile">
       <Group>
-        <Avatar radius="xl" size="lg" src={imageUrl} alt="Your profile pic" />
-        <div>
+        <Avatar radius={'300px' as MantineNumberSize} size="xl" src={imageUrl} alt="Your profile pic" />
+        <div className="w-64">
           <TextInput placeholder="Your handle" required value={handle} onChange={(e) => setHandle(e.target.value)} />
           {error && (
             <Text color="red" size="xs">

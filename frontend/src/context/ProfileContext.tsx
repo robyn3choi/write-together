@@ -3,7 +3,8 @@ import { useAuth } from './AuthContext'
 import { getProfiles, createProfile } from 'utils/profile'
 import { pollUntilIndexed } from 'utils/pollUntilIndexed'
 import { useAccount } from './AccountContext'
-import { getPublicationsByProfileId } from 'utils/getPublications'
+import { ActionIcon } from '@mantine/core'
+import { RefreshIcon } from '@heroicons/react/outline'
 
 const ProfileContext = createContext<ProviderValue | undefined>(undefined)
 type Props = { children: ReactNode }
@@ -11,6 +12,7 @@ type Props = { children: ReactNode }
 type ProviderValue = {
   profiles: any[]
   activeProfile: any
+  setActiveProfileId: (id: string) => void
   createProfile: (handle: string, imageUrl: string) => void
 }
 
@@ -19,14 +21,14 @@ export function ProfileProvider({ children }: Props) {
   const { isLoggedIn } = useAuth()
   const [profiles, setProfiles] = useState<any>(null)
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null)
+  const [keyCounter, setKeyCounter] = useState(0)
 
   async function getOwnedProfiles() {
     const res = await getProfiles({ ownedBy: address! })
     setProfiles(res.data.profiles.items)
     setActiveProfileId(res.data.profiles.items[0].id)
-    const blah = await getPublicationsByProfileId(res.data.profiles.items[0].id)
   }
-
+  // TODO: dependencies
   useEffect(() => {
     if (address && isLoggedIn && !profiles) {
       getOwnedProfiles()
@@ -55,10 +57,22 @@ export function ProfileProvider({ children }: Props) {
       value={{
         profiles,
         activeProfile: profiles?.find((p) => p.id === activeProfileId),
+        setActiveProfileId,
         createProfile: handleCreateProfile,
       }}
+      key={keyCounter}
     >
       {children}
+      {/* <ActionIcon
+        size="xl"
+        radius="xl"
+        variant="filled"
+        color="blue"
+        className="fixed bottom-6 right-6 p-2"
+        onClick={() => setKeyCounter(keyCounter + 1)}
+      >
+        <RefreshIcon />
+      </ActionIcon> */}
     </ProfileContext.Provider>
   )
 }

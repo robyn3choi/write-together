@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ethers } from 'ethers'
-import { Loader, Box } from '@mantine/core'
+import { Box } from '@mantine/core'
 import { useRouter } from 'next/router'
-import { Carousel } from 'react-responsive-carousel'
 import { useProfile } from 'context/ProfileContext'
 import { getTraitFromMetadata } from 'utils/helpers'
 import { getCommentsOnPost } from 'utils/getPublications'
@@ -10,15 +9,17 @@ import Page from 'types/Page'
 import 'react-responsive-carousel/lib/styles/carousel.min.css'
 import PageView from './PageView'
 import { useAccount } from 'context/AccountContext'
+import Carousel from 'components/Carousel'
+import Loader from 'components/Loader'
 
 type Props = {
   onContinueFromComment: (comment: any) => void
+  onCommentsLoaded: (comments: any[]) => void
 }
 
-export default function Comments({ onContinueFromComment }: Props) {
+export default function Comments({ onContinueFromComment, onCommentsLoaded }: Props) {
   const router = useRouter()
   const { postId } = router.query
-  const { activeProfile } = useProfile()
   const { contract } = useAccount()
 
   const [allCommentsByPage, setAllCommentsByPage] = useState<any[][]>() // an array that holds arrays of comments grouped by page number
@@ -43,6 +44,7 @@ export default function Comments({ onContinueFromComment }: Props) {
           page: parseInt(getTraitFromMetadata(c.metadata, 'Page')),
           partOfStory: getTraitFromMetadata(c.metadata, 'Part of Story'),
           continuedFrom: getTraitFromMetadata(c.metadata, 'Continued from') || postId, // some early page 2 comments don't have this attribute
+          mainPost: c.mainPost?.id,
         }))
       // sort in ascending order of page number
       allCommentsAscending.sort((a, b) => a.page - b.page)
@@ -58,14 +60,15 @@ export default function Comments({ onContinueFromComment }: Props) {
       })
 
       const _viewableCommentsByPage: any[][] = [..._allCommentsByPage]
-      console.log(_viewableCommentsByPage)
       const _commentsToLikes = {}
+      console.log(_allCommentsByPage)
       // we don't need to filter page 2 comments (which are in the first element of _viewableCommentsByPage)
       for (let i = 0; i < _viewableCommentsByPage.length; i++) {
         if (i > 0) {
+          console.log(i)
           // only viewing comments continued from the first comment in the previous page
           _viewableCommentsByPage[i] = _viewableCommentsByPage[i].filter(
-            (c) => c.continuedFrom === _viewableCommentsByPage[i - 1][0].id
+            (c) => c.continuedFrom === _viewableCommentsByPage[i - 1][0]?.id
           )
         }
         // for each viewable comment on this page, get its likes
@@ -78,12 +81,13 @@ export default function Comments({ onContinueFromComment }: Props) {
       setAllCommentsByPage(_allCommentsByPage)
       setViewableCommentsByPage(_viewableCommentsByPage)
       setCommentsToLikes(_commentsToLikes)
+      onCommentsLoaded(allCommentsAscending)
       setIsLoadingComments(false)
     }
-    if (!allCommentsByPage && !isLoadingComments && postId) {
+    if (!allCommentsByPage && !isLoadingComments && postId && contract) {
       getComments()
     }
-  })
+  }, [allCommentsByPage, contract, isLoadingComments, postId, onCommentsLoaded])
 
   async function handleCarouselChange(commentIndex: number, commentsByPageIndex: number) {
     if (!viewableCommentsByPage || !allCommentsByPage) return // to appease typescript
@@ -117,28 +121,27 @@ export default function Comments({ onContinueFromComment }: Props) {
 
   return (
     <>
-      {!viewableCommentsByPage || !commentsToLikes ? (
-        <Loader />
-      ) : (
+      {!viewableCommentsByPage || !commentsToLikes ? null : (
         <Box>
-          {viewableCommentsByPage.map((page, i) => (
-            <Carousel
-              key={getCarouselKey(page)}
-              autoPlay={false}
-              showThumbs={false}
-              onChange={(commentIndex) => handleCarouselChange(commentIndex, i)}
-            >
-              {viewableCommentsByPage[i].map((comment) => (
-                <PageView
-                  key={comment.id}
-                  page={comment}
-                  likes={commentsToLikes[comment.id]}
-                  onUpdateLikes={(likes) => setCommentsToLikes((prevState) => ({ ...prevState, [comment.id]: likes }))}
-                  onContinue={() => onContinueFromComment(comment)}
-                />
-              ))}
-            </Carousel>
-          ))}
+          {viewableCommentsByPage
+            .filter((page) => page.length > 0)
+            .map((page, i) => (
+              <Carousel
+                key={getCarouselKey(page)}
+                onChange={(commentIndex) => handleCarouselChange(commentIndex, i)}
+                items={viewableCommentsByPage[i].map((comment) => (
+                  <PageView
+                    key={comment.id}
+                    page={comment}
+                    likes={commentsToLikes[comment.id]}
+                    onUpdateLikes={(likes) =>
+                      setCommentsToLikes((prevState) => ({ ...prevState, [comment.id]: likes }))
+                    }
+                    onContinue={() => onContinueFromComment(comment)}
+                  />
+                ))}
+              />
+            ))}
         </Box>
       )}
     </>

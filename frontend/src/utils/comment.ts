@@ -53,15 +53,15 @@ export const createComment = async (
   profileId: string,
   postId: string,
   ipfsResult: any,
-  signer: ethers.providers.JsonRpcSigner
+  signer: ethers.providers.JsonRpcSigner,
+  canCollect: boolean
 ) => {
+  const collectModule = canCollect ? { emptyCollectModule: true } : { revertCollectModule: true }
   const createCommentRequest = {
     profileId,
     publicationId: postId,
     contentURI: 'ipfs://' + ipfsResult.path,
-    collectModule: {
-      revertCollectModule: true,
-    },
+    collectModule,
     referenceModule: {
       followerOnlyReferenceModule: false,
     },
@@ -95,4 +95,5 @@ export const createComment = async (
     },
   })
   console.log('create comment: tx hash', tx.hash)
+  return tx
 }

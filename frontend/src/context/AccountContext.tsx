@@ -21,13 +21,13 @@ export function AccountProvider({ children }: Props) {
   const [contract, setContract] = useState<ethers.Contract | null>(null)
 
   useEffect(() => {
-    if (typeof window.ethereum !== 'undefined' && !provider) {
+    if (typeof window.ethereum !== 'undefined' && !provider && address) {
       const provider = new ethers.providers.Web3Provider(window.ethereum)
       setProvider(provider)
       setSigner(provider.getSigner())
       setContract(new ethers.Contract(storyInteractionsContractAddress, storyInteractionsAbi, provider!.getSigner()))
     }
-  }, [provider])
+  }, [provider, address])
 
   useEffect(() => {
     if (window.ethereum) {

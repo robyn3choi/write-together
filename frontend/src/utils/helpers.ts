@@ -24,12 +24,14 @@ export const omit = (object: any, name: string) => {
 
 // not sure if html actually renders properly as the image
 export function getImageFromRichText(richText, font) {
-  const startTags = `<html><div style="font-family: ${font};">`
-  const endTags = `</div></html>`
-  const wholeHtml = startTags + richText + endTags
-  const prefix = 'data:image/svg+xml;base64,'
-  const base64 = Buffer.from(wholeHtml).toString('base64')
-  return prefix + base64
+  // const startTags = `<html><div style="font-family: ${font};">`
+  // const endTags = `</div></html>`
+  // const wholeHtml = startTags + richText + endTags
+  // const prefix = 'data:image/svg+xml;base64,'
+  // const base64 = Buffer.from(wholeHtml).toString('base64')
+  // return prefix + base64
+  // html didn't work :(
+  return 'https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/160/google/313/open-book_1f4d6.png'
 }
 
 export function getTraitFromMetadata(metadata, traitType) {
