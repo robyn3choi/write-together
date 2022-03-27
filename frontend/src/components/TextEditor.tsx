@@ -8,7 +8,6 @@ type Props = {
 }
 
 export default function TextEditor({ value, onChange, font = 'Georgia' }: Props) {
-  console.log(value)
   return (
     <RichTextEditor
       value={value}

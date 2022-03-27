@@ -20,7 +20,7 @@ export default function ProfileDropdown() {
           .filter((p) => p.id !== activeProfile.id)
           .map((p) => (
             <Menu.Item key={p.id} onClick={() => setActiveProfileId(p.id)}>
-              <ProfileImageAndHandle profile={p} />
+              <ProfileImageAndHandle profile={p} isLink={false} />
             </Menu.Item>
           ))}
         <Divider />
@@ -55,7 +55,7 @@ const UserButton = forwardRef<HTMLButtonElement, UserButtonProps>(
     >
       <Group>
         <ChevronDownIcon className="h-5 w-5 text-gray-400" />
-        <ProfileImageAndHandle profile={profile} />
+        <ProfileImageAndHandle profile={profile} isLink={false} />
       </Group>
     </UnstyledButton>
   )
